@@ -2,12 +2,23 @@ package router
 
 import (
 	"context"
+	"instasafeCodingChallenge/transaction"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
-func APIMultiplexer(c context.Context) {
+type api struct {
+	transactionHandler transaction.Handler
+}
+
+func NewApi(transactionHandler transaction.Handler) *api {
+	return &api{
+		transactionHandler: transactionHandler,
+	}
+}
+
+func APIMultiplexer(c context.Context, apiSvc *api) {
 
 	routerVar.Use(gin.Logger(), gin.Recovery())
 
@@ -19,8 +30,8 @@ func APIMultiplexer(c context.Context) {
 
 	transactionRouter := routerVar.Group("/transactions")
 	{
-		transactionRouter.POST("")
-		transactionRouter.DELETE("")
+		transactionRouter.POST("", apiSvc.transactionHandler.AddTransaction())
+		transactionRouter.DELETE("", apiSvc.transactionHandler.DeleteTransactions())
 	}
 
 	routerVar.GET("/statistics")

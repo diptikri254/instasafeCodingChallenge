@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"instasafeCodingChallenge/router"
+	"instasafeCodingChallenge/transaction"
 	"sync"
 
 	"github.com/gin-gonic/gin"
@@ -15,7 +16,13 @@ func main() {
 
 	m := &sync.Mutex{}
 	routerV := router.NewRouterVar(m)
-	router.APIMultiplexer(ctx)
+
+	transactionDbService := transaction.NewTransactionDbService()
+	transactionService := transaction.NewTransactionService(transactionDbService)
+	transactionHandler := transaction.NewTransactionHandler(transactionService)
+
+	apiSvc := router.NewApi(transactionHandler)
+	router.APIMultiplexer(ctx, apiSvc)
 
 	ListenAndServe("9000", routerV)
 }
