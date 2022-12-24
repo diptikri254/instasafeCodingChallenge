@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"instasafeCodingChallenge/location"
 	"instasafeCodingChallenge/router"
 	"instasafeCodingChallenge/transaction"
 	"sync"
@@ -21,7 +22,11 @@ func main() {
 	transactionService := transaction.NewTransactionService(transactionDbService)
 	transactionHandler := transaction.NewTransactionHandler(transactionService)
 
-	apiSvc := router.NewApi(transactionHandler)
+	locationDbService := location.NewLocationDbService()
+	locationService := location.NewLocationService(locationDbService)
+	locationHandler := location.NewLocationHandler(locationService)
+
+	apiSvc := router.NewApi(transactionHandler, locationHandler)
 	router.APIMultiplexer(ctx, apiSvc)
 
 	ListenAndServe("9000", routerV)

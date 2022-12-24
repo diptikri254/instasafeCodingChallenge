@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"log"
 	"net/http"
 	"time"
 
@@ -18,28 +19,45 @@ type transactionHandler struct {
 
 func (handler *transactionHandler) AddTransaction() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var requestBody Transaction
+		type Request struct {
+			Amount    float64 `json:"amount"`
+			TimeStamp string  `json:"timestamp"`
+		}
+		var requestBody Request
 		err := c.ShouldBind(&requestBody)
 		if err != nil {
+			log.Printf("AddTransaction: error while decoding requestbody: %v", err)
 			c.JSON(http.StatusBadRequest, gin.H{
 				"message": "invalid json",
 			})
 			return
 		}
 
-		if requestBody.TimeStamp.After(time.Now()) {
+		timeStamp, err := time.Parse(time.RFC3339, requestBody.TimeStamp)
+		if err != nil {
+			log.Printf("AddTransaction: invalid timestamp: %v", err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"message": "invalid timestamp",
+			})
+			return
+		}
+
+		transaction := Transaction{
+			Amount:    requestBody.Amount,
+			TimeStamp: timeStamp,
+		}
+
+		if transaction.TimeStamp.After(time.Now()) {
 			c.JSON(http.StatusUnprocessableEntity, gin.H{
 				"message": "unprocessable entity",
 			})
 			return
 		}
 
-		handler.transactionService.AddTransaction(requestBody)
+		handler.transactionService.AddTransaction(transaction)
 
-		if requestBody.TimeStamp.After(time.Now().Add(-1 * time.Minute)) {
-			c.JSON(http.StatusNoContent, gin.H{
-				"message": "no content",
-			})
+		if !transaction.TimeStamp.After(time.Now().Add(-1 * time.Minute)) {
+			c.JSON(http.StatusNoContent, gin.H{})
 			return
 		}
 
